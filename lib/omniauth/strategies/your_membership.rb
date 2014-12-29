@@ -19,7 +19,8 @@ module OmniAuth
           first_name: raw_member_info.xpath('//FirstName').children.text,
           last_name: raw_member_info.xpath('//LastName').children.text,
           email: raw_member_info.xpath('//EmailAddr').children.text,
-          member_status: raw_member_info.xpath('//MemberTypeCode').children.text
+          member_type: raw_member_info.xpath('//MemberTypeCode').children.text,
+          is_active_member: is_active_member
         }
       end
 
@@ -101,6 +102,11 @@ module OmniAuth
         else
           nil
         end
+      end
+
+      def is_active_member
+        raw_member_info.xpath('//MembershipExpiry').children.text.present? &&
+          Date.parse(raw_member_info.xpath('//MembershipExpiry').children.text) >= Date.today
       end
 
       def member_xml
