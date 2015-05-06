@@ -114,7 +114,7 @@ module OmniAuth
         xml_builder.instruct! :xml, :version=>"1.0", :encoding=>"UTF-8"
         xml_builder.YourMembership {
           xml_builder.Version '2.00'
-          xml_builder.ApiKey '1683B512-5D53-42FF-BB7C-AE8EC6C155BA'
+          xml_builder.ApiKey auth_token
           xml_builder.CallID '003'
           xml_builder.SessionID url_session_id
           xml_builder.Call(Method: "Member.Profile.Get")
