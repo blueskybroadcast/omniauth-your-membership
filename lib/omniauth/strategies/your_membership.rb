@@ -20,6 +20,7 @@ module OmniAuth
           last_name: raw_member_info.xpath('//LastName').children.text,
           email: raw_member_info.xpath('//EmailAddr').children.text,
           member_type: raw_member_info.xpath('//MemberTypeCode').children.text,
+          username: raw_member_info.xpath('//Username').children.text,
           is_active_member: is_active_member
         }
       end
