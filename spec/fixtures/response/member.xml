@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<YourMembership_Response>
+  <ErrCode>0</ErrCode>
+  <ExtendedErrorInfo></ExtendedErrorInfo>
+  <Member.Profile.Get>
+    <ID>8D88D43A-B15B-4041-BEA0-89B05B2D9540</ID>
+    <WebsiteID>987654321</WebsiteID>
+    <PrimaryGroup>1998</PrimaryGroup>
+    <Registered>2008-01-15 14:53:41</Registered>
+    <LastUpdated>2009-06-22 10:04:18</LastUpdated>
+    <ConstituentID>1234567890</ConstituentID>
+    <EmailAddr>demo@yourmembership.com</EmailAddr>
+    <EmailBounced>0</EmailBounced>
+    <NamePrefix>Mrs</NamePrefix>
+    <FirstName>Elizabeth</FirstName>
+    <MiddleName>M</MiddleName>
+    <LastName>Allen</LastName>
+    <NameSuffix></NameSuffix>
+    <Nickname>Lizzy</Nickname>
+    <Gender>F</Gender>
+    <Birthdate>1976-04-19</Birthdate>
+    <MaritalStatus>Married</MaritalStatus>
+    <MaidenName>Hartley</MaidenName>
+    <SpouseName>James</SpouseName>
+    <AnniversaryDate>2001-06-14</AnniversaryDate>
+    <Employer>YourMembership.com</Employer>
+    <Title>Bank Manager</Title>
+    <Profession>Banking</Profession>
+    <Membership>Annual Membership</Membership>
+    <MembershipExpiry>2009-10-05 00:00:00</MembershipExpiry>
+    <MemberTypeCode>Alum</MemberTypeCode>
+    <Username>lizzy123</Username>
+    <PasswordHash>5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8</PasswordHash>
+    <AltEmailAddr>demo@yourmembership.com</AltEmailAddr>
+    <HomeAddrLine1>300 First Avenue South</HomeAddrLine1>
+    <HomeAddrLine2>Suite 300</HomeAddrLine2>
+    <HomeCity>St. Petersburg</HomeCity>
+    <HomeLocation>Florida</HomeLocation>
+    <HomePostalCode>33701</HomePostalCode>
+    <HomeCountry>United States</HomeCountry>
+    <Website></Website>
+    <HomePhAreaCode>727</HomePhAreaCode>
+    <HomePhone>555-1111</HomePhone>
+    <MobileAreaCode>727</MobileAreaCode>
+    <Mobile>555-2222</Mobile>
+    <EmpAddrLine1>300 First Avenue South</EmpAddrLine1>
+    <EmpAddrLine2>Suite 300</EmpAddrLine2>
+    <EmpCity>St. Petersburg</EmpCity>
+    <EmpLocation>Florida</EmpLocation>
+    <EmpPostalCode>33701</EmpPostalCode>
+    <EmpCountry>United States</EmpCountry>
+    <BusinessWebsite>http://www.yourmembership.com</BusinessWebsite>
+    <EmpPhAreaCode>727</EmpPhAreaCode>
+    <EmpPhone>555-3333</EmpPhone>
+    <EmpFaxAreaCode>727</EmpFaxAreaCode>
+    <EmpFax>555-4444</EmpFax>
+    <HeadshotImageURI>http://c.yourmembership.com/sites/alumni.yourmembership.com/photos/alumni/20080225_192243_17432.jpg</HeadshotImageURI>
+    <LastRenewalDate>2008-10-04 12:34:56</LastRenewalDate>
+    <ApprovalDate>2008-01-18 08:53:41</ApprovalDate>
+    <LastRenewalReminderSent>2012-01-08 04:32:00</LastRenewalReminderSent>
+    <GamificationPoints>145</GamificationPoints>
+    <Latitude>34.257912</Latitude>
+    <Longitude>-119.199859</Longitude>
+    <CustomFieldResponses>
+      <CustomFieldResponse FieldCode="CustomField1">
+        <Values>
+          <Value>Custom value 1</Value>
+          <Value>Custom value 2</Value>
+        </Values>
+      </CustomFieldResponse>
+      <CustomFieldResponse FieldCode="CustomField2">
+        <Values>
+          <Value>Custom value 1</Value>
+          <Value>Custom value 2</Value>
+        </Values>
+      </CustomFieldResponse>
+    </CustomFieldResponses>
+  </Member.Profile.Get>
+</YourMembership_Response>

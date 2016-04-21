@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<YourMembership>
+  <Version>2.00</Version>
+  <ApiKey>auth_token</ApiKey>
+  <CallID>002</CallID>
+  <SessionID>session_id</SessionID>
+  <Call Method="Auth.CreateToken">
+    <RetUrl>http://example.com/callback?slug=slug&amp;session_id=session_id<</RetUrl>
+  </Call>
+</YourMembership>

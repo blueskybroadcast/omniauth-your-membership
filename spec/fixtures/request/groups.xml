@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<YourMembership>
+  <Version>2.03</Version>
+  <ApiKey>private_api_key</ApiKey>
+  <CallID>004</CallID>
+  <SaPasscode>sa_passcode</SaPasscode>
+  <Call Method="Sa.People.Profile.Groups.Get">
+    <ID>person_id</ID>
+  </Call>
+</YourMembership>

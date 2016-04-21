@@ -1,5 +1,7 @@
 require 'omniauth-oauth2'
 require 'builder'
+require 'active_support'
+require 'active_support/core_ext/object/blank'
 
 module OmniAuth
   module Strategies
@@ -7,7 +9,10 @@ module OmniAuth
 
       option :client_options, {
         site: 'https://api.yourmembership.com',
-        auth_token: '1683B512-5D53-42FF-BB7C-AE8EC6C155BA'
+        auth_token: '1683B512-5D53-42FF-BB7C-AE8EC6C155BA',
+        private_key: 'MUST_BE_SET',
+        add_groups_data: false,
+        sa_passcode: 'MUST_BE_SET'
       }
 
       option :name, 'your_membership'
@@ -15,18 +20,24 @@ module OmniAuth
       uid { raw_member_info.xpath('//ID').children.text }
 
       info do
-        {
+        data = {
           first_name: raw_member_info.xpath('//FirstName').children.text,
           last_name: raw_member_info.xpath('//LastName').children.text,
           email: raw_member_info.xpath('//EmailAddr').children.text,
           member_type: raw_member_info.xpath('//MemberTypeCode').children.text,
           username: raw_member_info.xpath('//Username').children.text,
-          is_active_member: is_active_member
+          is_active_member: active_member?
         }
+        if add_groups_data?
+          group_codes = raw_group_member_info.xpath('//Group').map { |node| node.attributes['Code'].value }
+          group_codes.uniq!
+          data[:groups] = group_codes
+        end
+        data
       end
 
       extra do
-        { :raw_info => raw_info }
+        { raw_info: raw_info }
       end
 
       def creds
@@ -57,7 +68,7 @@ module OmniAuth
       end
 
       def auth_hash
-        hash = AuthHash.new(:provider => name, :uid => uid)
+        hash = AuthHash.new(provider: name, uid: uid)
         hash.info = info
         hash.credentials = creds
         hash
@@ -67,10 +78,26 @@ module OmniAuth
         @raw_member_info ||= get_member_info
       end
 
+      def raw_group_member_info
+        @group_member_info ||= get_group_member_codes
+      end
+
       private
+
+      def add_groups_data?
+        options.client_options.add_groups_data
+      end
 
       def auth_token
         options.client_options.auth_token
+      end
+
+      def private_api_key
+        options.client_options.private_key
+      end
+
+      def sa_passcode
+        options.client_options.sa_passcode
       end
 
       def create_session
@@ -99,13 +126,23 @@ module OmniAuth
         response = Typhoeus.post(options.client_options.site, body: member_xml)
 
         if response.success?
-          doc = Nokogiri::XML(response.body)
+          Nokogiri::XML(response.body)
         else
           nil
         end
       end
 
-      def is_active_member
+      def get_group_member_codes
+        response = Typhoeus.post(options.client_options.site, body: groups_xml)
+
+        if response.success?
+          Nokogiri::XML(response.body)
+        else
+          nil
+        end
+      end
+
+      def active_member?
         raw_member_info.xpath('//MembershipExpiry').children.text.present? &&
           Date.parse(raw_member_info.xpath('//MembershipExpiry').children.text) >= Date.today
       end
@@ -149,6 +186,25 @@ module OmniAuth
             xml_builder.RetUrl callback_url
           }
         }
+      end
+
+      def groups_xml
+        xml_builder = ::Builder::XmlMarkup.new
+        xml_builder.instruct! :xml, version: '1.0', encoding: 'UTF-8'
+        xml_builder.YourMembership {
+          xml_builder.Version '2.03'
+          xml_builder.ApiKey private_api_key
+          xml_builder.CallID '004'
+          xml_builder.SaPasscode sa_passcode
+          xml_builder.Call(Method: 'Sa.People.Profile.Groups.Get') {
+            xml_builder.ID person_id
+          }
+        }
+        xml_builder.target!
+      end
+
+      def person_id
+        @person_id ||= raw_member_info.xpath('//ID').children.text
       end
 
       def url_session_id

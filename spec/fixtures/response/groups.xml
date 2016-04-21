@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<YourMembership_Response>
+  <ErrCode>0</ErrCode>
+  <Sa.People.Profile.Groups.Get>
+    <Administrator>
+      <Group Code="2008" Name="Class Year: 2008"></Group>
+    </Administrator>
+    <Member>
+      <Group Code="2008" Name="Class Year: 2008" Primary="1" GroupID="2324"></Group>
+      <Group Code="Tampa" Name="Regional Chapter: Tampa" Primary="0" GroupID="234"></Group>
+      <Group Code="CONHS" Name="Clubs & Organizations: National Honor Society" Primary="0" GroupID="1234"></Group>
+      <Group Code="COSG" Name="Clubs & Organizations: Student Government" Primary="0" GroupID="4324"></Group>
+      <Group Code="ATBB" Name="Athletics: Baseball" Primary="0" GroupID="1239"></Group>
+    </Member>
+    <Representative>
+      <Group Code="CONHS" Name="Clubs & Organizations: National Honor Society" Title="President" GroupID="1234"></Group>
+      <Group Code="COSG" Name="Clubs & Organizations: Student Government" Title="Treasurer" GroupID="4324"></Group>
+    </Representative>
+  </Sa.People.Profile.Groups.Get>
+</YourMembership_Response>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<YourMembership>
+  <Version>2.00</Version>
+  <ApiKey>auth_token</ApiKey>
+  <CallID>001</CallID>
+  <Call Method="Session.Create"></Call>
+</YourMembership>
