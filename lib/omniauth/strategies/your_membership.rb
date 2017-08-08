@@ -46,23 +46,36 @@ module OmniAuth
 
       def request_phase
         slug = session['omniauth.params']['origin'].gsub(/\//,"")
+        account = Account.find_by(slug: slug)
+        @app_event = account.app_events.create(activity_type: 'sso')
 
         session_id = create_session
         auth_url = create_token(session_id, callback_url, slug)
+        unless session_id && auth_url
+          @app_event.logs.create(level: 'error', text: 'Invalid credentials')
+          @app_event.fail!
+          return fail!(:invalid_credentials)
+        end
         redirect auth_url
       end
 
       def callback_phase
-        if url_session_id
+        slug = request.params['slug']
+        @app_event = account.app_events.where(id: request.params['event_id']).first_or_create(activity_type: 'sso')
 
+        if url_session_id
           self.access_token = {
-            :token => url_session_id
+            token: url_session_id
           }
 
           self.env['omniauth.auth'] = auth_hash
-          self.env['omniauth.origin'] = '/' + request.params['slug']
+          self.env['omniauth.origin'] = '/' + slug
+          self.env['omniauth.app_event_id'] = @app_event.id
+          finalize_app_event
           call_app!
         else
+          @app_event.logs.create(level: 'error', text: 'Invalid credentials')
+          @app_event.fail!
           fail!(:invalid_credentials)
         end
       end
@@ -88,6 +101,17 @@ module OmniAuth
         options.client_options.add_groups_data
       end
 
+      def app_event_log(callee, response = nil)
+        if response
+          response_log = "YourMembership Authentication Response (#{callee.to_s.humanize}) (code: #{response&.code}):\n#{response.inspect}"
+          log_level = response.success? ? 'info' : 'error'
+          @app_event.logs.create(level: log_level, text: response_log)
+        else
+          request_log = "YourMembership Authentication Request (#{callee.to_s.humanize}):\nPOST #{options.client_options.site}"
+          @app_event.logs.create(level: 'info', text: request_log)
+        end
+      end
+
       def auth_token
         options.client_options.auth_token
       end
@@ -101,7 +125,9 @@ module OmniAuth
       end
 
       def create_session
+        app_event_log(__callee__)
         response = Typhoeus.post(options.client_options.site, body: session_xml)
+        app_event_log(__callee__, response)
 
         if response.success?
           doc = Nokogiri::XML(response.body)
@@ -112,7 +138,9 @@ module OmniAuth
       end
 
       def create_token(session_id, callback, slug)
+        app_event_log(__callee__)
         response = Typhoeus.post(options.client_options.site, body: token_xml(session_id, callback, slug))
+        app_event_log(__callee__, response)
 
         if response.success?
           doc = Nokogiri::XML(response.body)
@@ -122,8 +150,23 @@ module OmniAuth
         end
       end
 
+      def finalize_app_event
+        app_event_data = {
+          user_info: {
+            uid: uid,
+            first_name: info[:first_name],
+            last_name: info[:last_name],
+            email: info[:email]
+          }
+        }
+
+        @app_event.update(raw_data: app_event_data)
+      end
+
       def get_member_info
+        app_event_log(__callee__)
         response = Typhoeus.post(options.client_options.site, body: member_xml)
+        app_event_log(__callee__, response)
 
         if response.success?
           Nokogiri::XML(response.body)
@@ -133,7 +176,9 @@ module OmniAuth
       end
 
       def get_group_member_codes
+        app_event_log(__callee__)
         response = Typhoeus.post(options.client_options.site, body: groups_xml)
+        app_event_log(__callee__, response)
 
         if response.success?
           Nokogiri::XML(response.body)
@@ -173,7 +218,7 @@ module OmniAuth
       end
 
       def token_xml(session_id, callback, slug)
-        callback_url = "#{callback}?slug=#{slug}&session_id=#{session_id}"
+        callback_url = "#{callback}?slug=#{slug}&session_id=#{session_id}&event_id=#{@app_event.id}"
 
         xml_builder = ::Builder::XmlMarkup.new
         xml_builder.instruct! :xml, :version=>"1.0", :encoding=>"UTF-8"

@@ -3,6 +3,7 @@ require 'nokogiri'
 
 describe OmniAuth::Strategies::YourMembership do
   subject { described_class.new('app_id', 'secret') }
+  let(:app_event) { double('AppEvent', id: 1) }
 
   describe '#options' do
     describe '#name' do
@@ -112,8 +113,10 @@ describe OmniAuth::Strategies::YourMembership do
 
   describe '#get_group_member_codes' do
     before do
+      subject.instance_variable_set(:@app_event, app_event)
       allow(subject).to receive(:groups_xml).and_return('groups_xml')
       allow(subject).to receive(:person_id).and_return('person_id')
+      allow(app_event).to receive_message_chain(:logs, :create).and_return(true)
     end
 
     context 'when response is success' do
@@ -179,6 +182,10 @@ describe OmniAuth::Strategies::YourMembership do
       let(:callback) { 'http://example.com/callback' }
       let(:slug) { 'slug' }
       let(:expected) { get_request_fixture('token') }
+
+      before do
+        subject.instance_variable_set(:@app_event, double('AppEvent', id: 1))
+      end
 
       it 'builds correct xml' do
         result = to_xml(subject.send(:token_xml, session_id, callback, slug))

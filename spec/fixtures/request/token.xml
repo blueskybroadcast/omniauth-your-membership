@@ -6,6 +6,6 @@
   <CallID>002</CallID>
   <SessionID>session_id</SessionID>
   <Call Method="Auth.CreateToken">
-    <RetUrl>http://example.com/callback?slug=slug&amp;session_id=session_id<</RetUrl>
+    <RetUrl>http://example.com/callback?slug=slug&amp;session_id=session_id&amp;event_id=1<</RetUrl>
   </Call>
 </YourMembership>

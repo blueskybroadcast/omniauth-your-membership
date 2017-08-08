@@ -1,5 +1,7 @@
 require 'omniauth-your-membership'
 require 'webmock/rspec'
+require 'active_support/core_ext/string/inflections'
+
 WebMock.disable_net_connect!(allow_localhost: true)
 
 RSpec.configure do |config|
