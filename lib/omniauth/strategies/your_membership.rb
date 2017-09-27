@@ -45,14 +45,14 @@ module OmniAuth
       end
 
       def request_phase
-        slug = session['omniauth.params']['origin'].gsub(/\//,"")
+        slug = session['omniauth.params']['origin'].gsub(/\//, '')
         account = Account.find_by(slug: slug)
         @app_event = account.app_events.create(activity_type: 'sso')
 
         session_id = create_session
         auth_url = create_token(session_id, callback_url, slug)
         unless session_id && auth_url
-          @app_event.logs.create(level: 'error', text: 'Invalid credentials')
+          @app_event.logs.create(level: 'error', text: 'Session ID or Auth URL is absent')
           @app_event.fail!
           return fail!(:invalid_credentials)
         end
@@ -65,17 +65,14 @@ module OmniAuth
         @app_event = account.app_events.where(id: request.params['event_id']).first_or_create(activity_type: 'sso')
 
         if url_session_id
-          self.access_token = {
-            token: url_session_id
-          }
-
+          self.access_token = { token: url_session_id }
           self.env['omniauth.auth'] = auth_hash
           self.env['omniauth.origin'] = '/' + slug
           self.env['omniauth.app_event_id'] = @app_event.id
           finalize_app_event
           call_app!
         else
-          @app_event.logs.create(level: 'error', text: 'Invalid credentials')
+          @app_event.logs.create(level: 'error', text: 'Session ID is absent')
           @app_event.fail!
           fail!(:invalid_credentials)
         end
@@ -104,7 +101,7 @@ module OmniAuth
 
       def app_event_log(callee, response = nil)
         if response
-          response_log = "YourMembership Authentication Response (#{callee.to_s.humanize}) (code: #{response&.code}):\n#{response.inspect}"
+          response_log = "YourMembership Authentication Response (#{callee.to_s.humanize}) (code: #{response&.code}):\n#{response.body}"
           log_level = response.success? ? 'info' : 'error'
           @app_event.logs.create(level: log_level, text: response_log)
         else
