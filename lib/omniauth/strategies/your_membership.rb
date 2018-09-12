@@ -11,8 +11,11 @@ module OmniAuth
         site: 'https://api.yourmembership.com',
         auth_token: '1683B512-5D53-42FF-BB7C-AE8EC6C155BA',
         private_key: 'MUST_BE_SET',
-        add_groups_data: false,
-        sa_passcode: 'MUST_BE_SET'
+        sync_standard_groups: false,
+        sync_custom_field_groups: false,
+        sa_passcode: 'MUST_BE_SET',
+        custom_fields_sync: false,
+        custom_field_keys: []
       }
 
       option :name, 'your_membership'
@@ -28,11 +31,15 @@ module OmniAuth
           username: raw_member_info.xpath('//Username').children.text,
           is_active_member: active_member?
         }
+        data[:custom_fields_data] = custom_fields_data if sync_custom_fields?
+
         if add_groups_data?
-          group_codes = raw_group_member_info.xpath('//Group').map { |node| node.attributes['Code'].value }
-          group_codes.uniq!
+          group_codes = []
+          group_codes += standard_groups if sync_standard_groups?
+          group_codes += custom_field_groups if sync_custom_field_groups?
           data[:groups] = group_codes
         end
+
         data
       end
 
@@ -95,8 +102,49 @@ module OmniAuth
 
       private
 
+      def custom_field_keys
+        options.client_options.custom_field_keys
+      end
+
       def add_groups_data?
-        options.client_options.add_groups_data
+        sync_standard_groups? || sync_custom_field_groups?
+      end
+
+      def sync_standard_groups?
+        options.client_options.sync_standard_groups
+      end
+
+      def sync_custom_field_groups?
+        options.client_options.sync_custom_field_groups
+      end
+
+      def sync_custom_fields?
+        options.client_options.custom_fields_sync
+      end
+
+      def standard_groups
+        raw_group_member_info.xpath('//Group').map { |node| node.attributes['Code'].value }.uniq
+      end
+
+      def custom_field_groups
+        custom_fields_data.map do |k, v|
+          values = v.split(';')
+          values.map { |val| "#{k.downcase}@#{val.downcase}" }
+        end.compact.uniq.flatten
+      end
+
+      def custom_fields_data
+        @custom_fields_data ||=
+          custom_field_keys.to_a.each_with_object({}) do |key, hash|
+            custom_field_response = raw_member_info.xpath("//CustomFieldResponse[@FieldCode='#{key}']//Value")
+            hash[key.downcase] = parse_custom_field_values(custom_field_response).compact.join(';')
+          end
+      end
+
+      def parse_custom_field_values(custom_field_response)
+        custom_field_response.map do |custom_field_value|
+          custom_field_value.children.text.presence
+        end
       end
 
       def app_event_log(callee, response = nil)

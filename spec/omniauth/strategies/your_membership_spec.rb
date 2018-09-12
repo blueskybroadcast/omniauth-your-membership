@@ -19,8 +19,12 @@ describe OmniAuth::Strategies::YourMembership do
         it { expect(subject.options.client_options.auth_token).to be_eql('1683B512-5D53-42FF-BB7C-AE8EC6C155BA') }
       end
 
-      describe '#add_groups_data' do
-        it { expect(subject.options.client_options.add_groups_data).to be_eql(false) }
+      describe '#sync_standard_groups' do
+        it { expect(subject.options.client_options.sync_standard_groups).to be_eql(false) }
+      end
+
+      describe '#sync_custom_field_groups' do
+        it { expect(subject.options.client_options.sync_custom_field_groups).to be_eql(false) }
       end
 
       describe '#sa_passcode' do
@@ -29,6 +33,14 @@ describe OmniAuth::Strategies::YourMembership do
 
       describe '#private_key' do
         it { expect(subject.options.client_options.private_key).to be_eql('MUST_BE_SET') }
+      end
+
+      describe '#custom_fields_sync' do
+        it { expect(subject.options.client_options.custom_fields_sync).to be_eql(false) }
+      end
+
+      describe '#custom_field_keys' do
+        it { expect(subject.options.client_options.custom_field_keys).to be_eql([]) }
       end
     end
   end
@@ -87,9 +99,9 @@ describe OmniAuth::Strategies::YourMembership do
     end
 
     context 'groups' do
-      context 'when #add_groups_data? returns true' do
+      context 'when #sync_standard_groups? returns true' do
         before do
-          allow(subject).to receive(:add_groups_data?).and_return(true)
+          allow(subject).to receive(:sync_standard_groups?).and_return(true)
           allow(subject).to receive(:raw_group_member_info).and_return(Nokogiri::XML(get_response_fixture('groups')))
         end
 
@@ -101,12 +113,80 @@ describe OmniAuth::Strategies::YourMembership do
         end
       end
 
-      context 'when #add_groups_data? returns false' do
-        before { allow(subject).to receive(:add_groups_data?).and_return(false) }
+      context 'when #sync_standard_groups? returns false' do
+        before { allow(subject).to receive(:sync_standard_groups?).and_return(false) }
 
         it 'does not exists in info hash' do
           expect(subject.info).not_to have_key(:groups)
         end
+      end
+
+      context 'when #sync_custom_field_groups? returns true' do
+        before do
+          allow(subject).to receive(:sync_custom_field_groups?).and_return(true)
+          allow(subject).to receive(:custom_field_keys).and_return(['CustomField1'])
+          allow(subject).to receive(:raw_member_info).and_return(Nokogiri::XML(get_response_fixture('member')))
+        end
+
+        it 'exists in info hash and has correct value' do
+          info = subject.info
+
+          expect(info).to have_key(:groups)
+          expect(info[:groups]).to be_eql ['customfield1@custom value 1', 'customfield1@custom value 2']
+        end
+      end
+
+      context 'when #sync_custom_field_groups? returns false' do
+        before { allow(subject).to receive(:sync_custom_field_groups?).and_return(false) }
+
+        it 'does not exist in info hash' do
+          expect(subject.info).not_to have_key(:groups)
+        end
+      end
+    end
+  end
+
+  context 'custom_fields_data' do
+    context 'if sync_custom_fields? is true' do
+      before do
+        allow(subject).to receive(:sync_custom_fields?).and_return(true)
+        allow(subject).to receive(:custom_field_keys).and_return(['CustomField2'])
+        allow(subject).to receive(:raw_member_info).and_return(Nokogiri::XML(get_response_fixture('member')))
+      end
+
+      it 'exists in info hash and has correct value' do
+        info = subject.info
+
+        expect(info).to have_key(:custom_fields_data)
+        expect(info[:custom_fields_data]).to be_eql({ 'customfield2' => 'Custom value 1;Custom value 2' })
+      end
+    end
+
+    context 'if sync_custom_fields? is true but custom_field_keys is empty' do
+      before do
+        allow(subject).to receive(:sync_custom_fields?).and_return(true)
+        allow(subject).to receive(:custom_field_keys).and_return([])
+        allow(subject).to receive(:raw_member_info).and_return(Nokogiri::XML(get_response_fixture('member')))
+      end
+
+      it 'exists in info hash and empty' do
+        info = subject.info
+
+        expect(info).to have_key(:custom_fields_data)
+        expect(info[:custom_fields_data]).to be_eql({})
+      end
+    end
+
+    context 'if sync_custom_fields? is false' do
+      before do
+        allow(subject).to receive(:sync_custom_fields?).and_return(false)
+        allow(subject).to receive(:raw_member_info).and_return(Nokogiri::XML(get_response_fixture('member')))
+      end
+
+      it 'does not exist in info hash' do
+        info = subject.info
+
+        expect(info).not_to have_key(:custom_fields_data)
       end
     end
   end
