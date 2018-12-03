@@ -6,6 +6,7 @@ require 'active_support/core_ext/object/blank'
 module OmniAuth
   module Strategies
     class YourMembership < OmniAuth::Strategies::OAuth2
+      LIMIT_EXCEEDED_ERR_CODE = '903'.freeze
 
       option :client_options, {
         site: 'https://api.yourmembership.com',
@@ -58,31 +59,39 @@ module OmniAuth
 
         session_id = create_session
         auth_url = create_token(session_id, callback_url, slug)
-        unless session_id && auth_url
+        if session_id.blank? || auth_url.blank?
           @app_event.logs.create(level: 'error', text: 'Session ID or Auth URL is absent')
           @app_event.fail!
           return fail!(:invalid_credentials)
         end
         redirect auth_url
+      rescue QuotaExceededError => _e
+        redirect "#{callback_url}?slug=#{slug}&event_id=#{@app_event.id}&quota_exceeded=true"
       end
 
       def callback_phase
-        slug = request.params['slug']
+        slug = request.params['slug'] || request.params['origin']&.tr('/', '')
         account = Account.find_by(slug: slug)
         @app_event = account.app_events.where(id: request.params['event_id']).first_or_create(activity_type: 'sso')
+        self.env['omniauth.origin'] = '/' + slug
+        self.env['omniauth.app_event_id'] = @app_event.id
 
         if url_session_id
           self.access_token = { token: url_session_id }
           self.env['omniauth.auth'] = auth_hash
-          self.env['omniauth.origin'] = '/' + slug
-          self.env['omniauth.app_event_id'] = @app_event.id
           finalize_app_event
           call_app!
         else
-          @app_event.logs.create(level: 'error', text: 'Session ID is absent')
-          @app_event.fail!
-          fail!(:invalid_credentials)
+          if request.params['quota_exceeded'].to_b
+            call_app_with_quota_exceeded_error
+          else
+            @app_event.logs.create(level: 'error', text: 'Session ID is absent')
+            @app_event.fail!
+            fail!(:invalid_credentials)
+          end
         end
+      rescue QuotaExceededError => _e
+        call_app_with_quota_exceeded_error
       end
 
       def auth_hash
@@ -101,6 +110,16 @@ module OmniAuth
       end
 
       private
+
+      def call_app_with_quota_exceeded_error
+        Rails.logger.error "=============!!! YourMembership Requests limit exceeded during SSO !!!============="
+        @app_event.logs.create(level: 'error', text: 'Requests limit exceeded')
+        @app_event.fail!
+        self.env['omniauth.auth'] = true
+        self.env['omniauth.error'] = 'custom_error'
+        self.env['omniauth.error.type'] = 'quota_exceeded'
+        call_app!
+      end
 
       def custom_field_keys
         options.client_options.custom_field_keys
@@ -177,6 +196,7 @@ module OmniAuth
 
         if response.success?
           doc = Nokogiri::XML(response.body)
+          check_if_requests_limit_reached(doc)
           doc.xpath('//SessionID').children.text
         else
           nil
@@ -190,10 +210,15 @@ module OmniAuth
 
         if response.success?
           doc = Nokogiri::XML(response.body)
+          check_if_requests_limit_reached(doc)
           doc.xpath('//GoToUrl').children.text
         else
           nil
         end
+      end
+
+      def check_if_requests_limit_reached(parsed_response)
+        raise QuotaExceededError if parsed_response.xpath('//ErrCode')&.text == LIMIT_EXCEEDED_ERR_CODE
       end
 
       def finalize_app_event
@@ -215,7 +240,9 @@ module OmniAuth
         app_event_log(__callee__, response)
 
         if response.success?
-          Nokogiri::XML(response.body)
+          doc = Nokogiri::XML(response.body)
+          check_if_requests_limit_reached(doc)
+          doc
         else
           nil
         end
@@ -227,7 +254,9 @@ module OmniAuth
         app_event_log(__callee__, response)
 
         if response.success?
-          Nokogiri::XML(response.body)
+          doc = Nokogiri::XML(response.body)
+          check_if_requests_limit_reached(doc)
+          doc
         else
           nil
         end
