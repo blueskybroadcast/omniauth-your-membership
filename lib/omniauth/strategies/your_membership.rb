@@ -53,12 +53,11 @@ module OmniAuth
       end
 
       def request_phase
-        slug = session['omniauth.params']['origin'].gsub(/\//, '')
-        account = Account.find_by(slug: slug)
+        account = Account.find_by(slug: account_slug)
         @app_event = account.app_events.create(activity_type: 'sso')
 
         session_id = create_session
-        auth_url = create_token(session_id, callback_url, slug)
+        auth_url = create_token(session_id, callback_url, account_slug)
         if session_id.blank? || auth_url.blank?
           @app_event.logs.create(level: 'error', text: 'Session ID or Auth URL is absent')
           @app_event.fail!
@@ -66,19 +65,19 @@ module OmniAuth
         end
         redirect auth_url
       rescue QuotaExceededError => _e
-        redirect "#{callback_url}?slug=#{slug}&event_id=#{@app_event.id}&quota_exceeded=true"
+        redirect "#{callback_url}?slug=#{account_slug}&event_id=#{@app_event.id}&quota_exceeded=true"
       end
 
       def callback_phase
-        slug = request.params['slug'] || request.params['origin']&.tr('/', '')
-        account = Account.find_by(slug: slug)
+        account = Account.find_by(slug: account_slug)
         @app_event = account.app_events.where(id: request.params['event_id']).first_or_create(activity_type: 'sso')
-        self.env['omniauth.origin'] = '/' + slug
+        self.env['omniauth.origin'] = '/' + account_slug
         self.env['omniauth.app_event_id'] = @app_event.id
 
         if url_session_id
           self.access_token = { token: url_session_id }
           self.env['omniauth.auth'] = auth_hash
+          self.env['omniauth.redirect_url'] = request.params['redirect_url'].presence
           finalize_app_event
           call_app!
         else
@@ -110,6 +109,10 @@ module OmniAuth
       end
 
       private
+
+      def account_slug
+        session['omniauth.params']&.[]('origin')&.gsub(/\//, '') || request.params['slug'].presence || request.params['origin']&.tr('/', '')
+      end
 
       def call_app_with_quota_exceeded_error
         Rails.logger.error "=============!!! YourMembership Requests limit exceeded during SSO !!!============="
@@ -293,7 +296,7 @@ module OmniAuth
       end
 
       def token_xml(session_id, callback, slug)
-        callback_url = "#{callback}?slug=#{slug}&session_id=#{session_id}&event_id=#{@app_event.id}"
+        callback_url = "#{callback}?slug=#{slug}&session_id=#{session_id}&event_id=#{@app_event.id}&redirect_url=#{request.params['redirect_url']}"
 
         xml_builder = ::Builder::XmlMarkup.new
         xml_builder.instruct! :xml, :version=>"1.0", :encoding=>"UTF-8"
